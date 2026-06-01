@@ -52,7 +52,7 @@ Context is automatically injected via Cursor's **Rules** system:
 ### Additional Access Methods
 
 - **MCP Tools**: Configure claude-mem's MCP server for `search`, `timeline`, `get_observations` tools
-- **Web Viewer**: Access context at `http://localhost:37777`
+- **Web Viewer**: Access context at `http://localhost:37700`
 - **Manual Request**: Ask the agent to search memory
 
 See [CONTEXT-INJECTION.md](CONTEXT-INJECTION.md) for details.
@@ -156,7 +156,7 @@ chmod +x .cursor/hooks/*.sh
 
 The hooks read configuration from `~/.claude-mem/settings.json`:
 
-- `CLAUDE_MEM_WORKER_PORT`: Worker port (default: 37777)
+- `CLAUDE_MEM_WORKER_PORT`: Worker port (default: 37700)
 - `CLAUDE_MEM_WORKER_HOST`: Worker host (default: 127.0.0.1)
 
 ## Dependencies
@@ -192,7 +192,7 @@ Install on Ubuntu: `apt-get install jq curl`
 
 1. Verify worker is running:
    ```bash
-   curl http://127.0.0.1:37777/api/readiness
+   curl http://127.0.0.1:37700/api/readiness
    ```
 
 2. Check worker logs:
@@ -209,11 +209,11 @@ Install on Ubuntu: `apt-get install jq curl`
 
 1. Monitor worker logs for incoming requests
 
-2. Verify session was initialized via web viewer at `http://localhost:37777`
+2. Verify session was initialized via web viewer at `http://localhost:37700`
 
 3. Test observation endpoint directly:
    ```bash
-   curl -X POST http://127.0.0.1:37777/api/sessions/observations \
+   curl -X POST http://127.0.0.1:37700/api/sessions/observations \
      -H "Content-Type: application/json" \
      -d '{"contentSessionId":"test","tool_name":"test","tool_input":{},"tool_response":{},"cwd":"/tmp"}'
    ```

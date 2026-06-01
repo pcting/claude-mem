@@ -15,7 +15,7 @@
 - **Gemini CLI is architecturally near-identical to Claude Code**: 11 lifecycle hooks, JSON via stdin/stdout, exit code 0/2 convention, `GEMINI.md` context files, `~/.gemini/settings.json`. This is the easiest high-value integration.
 - **OpenCode has the richest plugin system**: 20+ hook events across 12 categories, JS/TS plugin modules, custom tool creation, MCP support. 110k stars — largest open-source AI CLI.
 - **`npx skills` by Vercel supports 41 agents** — proving the multi-IDE installer UX works. Their agent detection pattern (check if config dir exists) is the right model.
-- **All IDEs share a single worker on port 37777**: One worker serves all integrations. Session source (which IDE) is tracked via the `source` field in hook payloads. No per-IDE worker instances.
+- **All IDEs share a single worker on port 37700**: One worker serves all integrations. Session source (which IDE) is tracked via the `source` field in hook payloads. No per-IDE worker instances.
 - **This npx CLI fully replaces the old `claude-mem-installer`**: Not a supplement — the complete replacement.
 
 ## Solution
@@ -130,7 +130,7 @@ npx claude-mem transcript watch         # Start transcript watcher
    - `npx claude-mem stop` → spawns `bun worker-service.cjs stop`
    - `npx claude-mem restart` → spawns `bun worker-service.cjs restart`
    - `npx claude-mem status` → spawns `bun worker-service.cjs status`
-   - `npx claude-mem search <query>` → hits `GET http://localhost:37777/api/search?q=<query>`
+   - `npx claude-mem search <query>` → hits `GET http://localhost:37700/api/search?q=<query>`
    - `npx claude-mem transcript watch` → starts transcript watcher
 
    **Runtime commands must check for installation first**: If plugin directory doesn't exist at `~/.claude/plugins/marketplaces/thedotmack/`, print "claude-mem is not installed. Run: npx claude-mem install" and exit.
@@ -385,7 +385,7 @@ return {
       args: { query: tool.schema.string() },
       async execute(args, context) {
         // context: { sessionID, messageID, agent, directory, worktree, abort, metadata, ask }
-        const response = await fetch(`http://localhost:37777/api/search?q=${encodeURIComponent(args.query)}`)
+        const response = await fetch(`http://localhost:37700/api/search?q=${encodeURIComponent(args.query)}`)
         return await response.text()
       },
     }),
@@ -410,7 +410,7 @@ return {
    | bus event | `session.deleted` | `session-end` |
 
    - Register `claude_mem_search` custom tool using correct `tool({ description, args, execute })` API
-   - Hit `localhost:37777` API endpoints from the plugin
+   - Hit `localhost:37700` API endpoints from the plugin
 
 2. **Build the plugin** in the esbuild pipeline → `dist/opencode-plugin/index.js`
 

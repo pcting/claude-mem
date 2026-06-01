@@ -283,7 +283,7 @@ export const ClaudeMemPlugin = async (ctx: OpenCodePluginContext) => {
           }
 
           const text = await workerGetText(
-            `/api/search/observations?query=${encodeURIComponent(query)}&limit=10`,
+            `/api/search?query=${encodeURIComponent(query)}&limit=10`,
           );
 
           if (!text) {

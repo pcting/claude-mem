@@ -8,6 +8,8 @@ export function useSSE() {
   const [summaries, setSummaries] = useState<Summary[]>([]);
   const [prompts, setPrompts] = useState<UserPrompt[]>([]);
   const [projects, setProjects] = useState<string[]>([]);
+  const [sources, setSources] = useState<string[]>([]);
+  const [projectsBySource, setProjectsBySource] = useState<Record<string, string[]>>({});
   const [isConnected, setIsConnected] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [queueDepth, setQueueDepth] = useState(0);
@@ -53,9 +55,12 @@ export function useSSE() {
         switch (data.type) {
           case 'initial_load':
             console.log('[SSE] Initial load:', {
-              projects: data.projects?.length || 0
+              projects: data.projects?.length || 0,
+              sources: data.sources?.length || 0
             });
             setProjects(data.projects || []);
+            setSources(data.sources || []);
+            setProjectsBySource(data.projectsBySource || {});
             break;
 
           case 'new_observation':
@@ -110,6 +115,8 @@ export function useSSE() {
     summaries,
     prompts,
     projects,
+    sources,
+    projectsBySource,
     isProcessing,
     queueDepth,
     isConnected

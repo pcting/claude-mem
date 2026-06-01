@@ -3,7 +3,6 @@ import { Header } from './components/Header';
 import { Feed } from './components/Feed';
 import { ContextSettingsModal } from './components/ContextSettingsModal';
 import { LogsDrawer } from './components/LogsModal';
-import { WelcomeCard, getStoredWelcomeDismissed, setStoredWelcomeDismissed } from './components/WelcomeCard';
 import { useSSE } from './hooks/useSSE';
 import { useSettings } from './hooks/useSettings';
 import { useStats } from './hooks/useStats';
@@ -14,29 +13,40 @@ import { mergeAndDeduplicateByProject } from './utils/data';
 
 export function App() {
   const [currentFilter, setCurrentFilter] = useState('');
+  const [currentSource, setCurrentSource] = useState('all');
   const [contextPreviewOpen, setContextPreviewOpen] = useState(false);
   const [logsModalOpen, setLogsModalOpen] = useState(false);
-  const [welcomeDismissed, setWelcomeDismissed] = useState<boolean>(getStoredWelcomeDismissed);
   const [paginatedObservations, setPaginatedObservations] = useState<Observation[]>([]);
   const [paginatedSummaries, setPaginatedSummaries] = useState<Summary[]>([]);
   const [paginatedPrompts, setPaginatedPrompts] = useState<UserPrompt[]>([]);
 
-  const { observations, summaries, prompts, projects, isProcessing, queueDepth, isConnected } = useSSE();
+  const { observations, summaries, prompts, projects, sources, projectsBySource, isProcessing, queueDepth, isConnected } = useSSE();
   const { settings, saveSettings, isSaving, saveStatus } = useSettings();
-  const { refreshStats } = useStats();
-  const { preference, setThemePreference } = useTheme();
-  const pagination = usePagination(currentFilter);
+  const { stats, refreshStats } = useStats();
+  const { preference, resolvedTheme, setThemePreference } = useTheme();
+  const pagination = usePagination(currentFilter, currentSource);
 
-  const matchesSelection = useCallback((item: { project: string }) => {
-    return !currentFilter || item.project === currentFilter;
-  }, [currentFilter]);
+  const availableProjects = useMemo(() => {
+    if (currentSource === 'all') {
+      return projects;
+    }
+
+    return projectsBySource[currentSource] || [];
+  }, [currentSource, projects, projectsBySource]);
+
+  const matchesSelection = useCallback((item: { project: string; platform_source: string }) => {
+    const matchesProject = !currentFilter || item.project === currentFilter;
+    const matchesSource = currentSource === 'all' || (item.platform_source || 'claude') === currentSource;
+    return matchesProject && matchesSource;
+  }, [currentFilter, currentSource]);
 
   useEffect(() => {
-    if (currentFilter && !projects.includes(currentFilter)) {
+    if (currentFilter && !availableProjects.includes(currentFilter)) {
       setCurrentFilter('');
     }
-  }, [projects, currentFilter]);
+  }, [availableProjects, currentFilter]);
 
+  // Merge SSE live data with paginated data, filtering by project when active
   const allObservations = useMemo(() => {
     const live = observations.filter(matchesSelection);
     const paginated = paginatedObservations.filter(matchesSelection);
@@ -55,14 +65,17 @@ export function App() {
     return mergeAndDeduplicateByProject(live, paginated);
   }, [prompts, paginatedPrompts, matchesSelection]);
 
+  // Toggle context preview modal
   const toggleContextPreview = useCallback(() => {
     setContextPreviewOpen(prev => !prev);
   }, []);
 
+  // Toggle logs modal
   const toggleLogsModal = useCallback(() => {
     setLogsModalOpen(prev => !prev);
   }, []);
 
+  // Handle loading more data
   const handleLoadMore = useCallback(async () => {
     try {
       const [newObservations, newSummaries, newPrompts] = await Promise.all([
@@ -85,35 +98,31 @@ export function App() {
     }
   }, [pagination.observations, pagination.summaries, pagination.prompts]);
 
+  // Reset paginated data and load first page when project/source changes
   useEffect(() => {
     setPaginatedObservations([]);
     setPaginatedSummaries([]);
     setPaginatedPrompts([]);
     handleLoadMore();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentFilter]);
-
-  useEffect(() => {
-    refreshStats();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [observations.length]);
+  }, [currentFilter, currentSource]);
 
   return (
     <>
       <Header
         isConnected={isConnected}
-        projects={projects}
+        projects={availableProjects}
+        sources={sources}
         currentFilter={currentFilter}
+        currentSource={currentSource}
         onFilterChange={setCurrentFilter}
+        onSourceChange={setCurrentSource}
         isProcessing={isProcessing}
         queueDepth={queueDepth}
         themePreference={preference}
         onThemeChange={setThemePreference}
         onContextPreviewToggle={toggleContextPreview}
-        onShowHelp={() => {
-          setStoredWelcomeDismissed(false);
-          setWelcomeDismissed(false);
-        }}
+        workerVersion={stats.worker?.version}
       />
 
       <Feed
@@ -124,10 +133,6 @@ export function App() {
         isLoading={pagination.observations.isLoading || pagination.summaries.isLoading || pagination.prompts.isLoading}
         hasMore={pagination.observations.hasMore || pagination.summaries.hasMore || pagination.prompts.hasMore}
       />
-
-      {!welcomeDismissed && (
-        <WelcomeCard onDismiss={() => setWelcomeDismissed(true)} />
-      )}
 
       <ContextSettingsModal
         isOpen={contextPreviewOpen}
